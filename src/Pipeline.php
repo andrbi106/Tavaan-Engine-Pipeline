@@ -39,7 +39,7 @@ final class Pipeline
         return $this;
     }
 
-    public function through(array|iterable $pipes): static
+    public function through(array $pipes): static
     {
         $this->pipes = \is_array($pipes) ? \array_values($pipes) : \iterator_to_array($pipes, false);
         return $this;
