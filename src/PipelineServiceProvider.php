@@ -5,32 +5,41 @@ declare(strict_types=1);
 namespace Tavaan\Engine\Pipeline;
 
 use Tavaan\Core\Contracts\Container\ContainerInterface;
-use Tavaan\Core\Contracts\Pipeline\PipelineInterface;
+use Tavaan\Core\Contracts\Config\RepositoryInterface as ConfigRepository;
+use Tavaan\Engine\Pipeline\Contracts\PipelineInterface;
 use Tavaan\Core\Provider\ServiceProvider;
 
 /**
- * تَوان | Tavaan — Pipeline
- * PipelineServiceProvider — ثبت factory برای Pipeline (هر make = زنجیرهٔ تازه).
- *
- * @api 1.0
- * @see docs/03-engines/pipeline.md
+ * PipelineServiceProvider — ثبت سرویس‌های موتور Pipeline.
  */
 final class PipelineServiceProvider extends ServiceProvider
 {
+    /**
+     * {@inheritdoc}
+     */
     public function register(): void
     {
-        $this->app->bind(Pipeline::class, static function (ContainerInterface $c): Pipeline {
-            $config = $c->bound('config') ? (array) $c->make('config')->get('pipeline', []) : [];
-
-            return new Pipeline($c, $config);
+        $this->app->singleton(PipelineInterface::class, function (ContainerInterface $app) {
+            /** @var ConfigRepository $config */
+            $config = $app->get(ConfigRepository::class);
+            return new Pipeline($config);
         });
-        $this->app->alias(Pipeline::class, PipelineInterface::class);
-        $this->app->alias(Pipeline::class, 'pipeline');
     }
 
-    /** @return list<string> */
+    /**
+     * {@inheritdoc}
+     */
+    public function boot(): void
+    {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function provides(): array
     {
-        return [Pipeline::class, PipelineInterface::class, 'pipeline'];
+        return [
+            PipelineInterface::class,
+        ];
     }
 }
