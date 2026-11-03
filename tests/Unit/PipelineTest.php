@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Pipeline\Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
+use Tavaan\Testing\TestCase;
 use Tavaan\Engine\Pipeline\Pipeline;
 use Tavaan\Engine\Pipeline\Contracts\MiddlewareInterface;
 
