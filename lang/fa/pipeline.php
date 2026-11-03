@@ -2,9 +2,6 @@
 
 declare(strict_types=1);
 
-/*| پیام‌های fa برای موتور pipeline */
-
 return [
-    'error_default' => 'خطای ناشناخته (pipeline)',
-    'not_configured' => 'موتور پیکربندی نشده است (pipeline)',
+    'error_pipe_not_found' => 'Pipe «{0}» قابل resolve نیست.',
 ];

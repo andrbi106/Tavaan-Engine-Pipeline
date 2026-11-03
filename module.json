@@ -15,9 +15,7 @@
   ],
   "requires": {
     "php": ">=8.2",
-    "engines": [
-      "container"
-    ]
+    "engines": ["container"]
   },
   "config": {
     "file": "config/pipeline.php",

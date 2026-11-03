@@ -4,42 +4,38 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Pipeline;
 
-use Tavaan\Core\Contracts\Container\ContainerInterface;
-use Tavaan\Core\Contracts\Config\RepositoryInterface as ConfigRepository;
-use Tavaan\Engine\Pipeline\Contracts\PipelineInterface;
-use Tavaan\Core\Provider\ServiceProvider;
-
 /**
- * PipelineServiceProvider — ثبت سرویس‌های موتور Pipeline.
+ * PipelineServiceProvider — ثبت موتور Pipeline.
+ *
+ * Pipeline با نوع‌های مختلف Container سازگار است (هر آبجکتی که متد make() داشته باشد).
  */
-final class PipelineServiceProvider extends ServiceProvider
+final class PipelineServiceProvider
 {
-    /**
-     * {@inheritdoc}
-     */
+    public function __construct(
+        private readonly ?object $container = null,
+    ) {
+    }
+
     public function register(): void
     {
-        $this->app->singleton(PipelineInterface::class, function (ContainerInterface $app) {
-            /** @var ConfigRepository $config */
-            $config = $app->get(ConfigRepository::class);
-            return new Pipeline($config);
-        });
+        // No-op — Pipeline با new Pipeline() ساخته می‌شود
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function boot(): void
     {
+        // No-op
     }
 
     /**
-     * {@inheritdoc}
+     * @return list<class-string>
      */
     public function provides(): array
     {
-        return [
-            PipelineInterface::class,
-        ];
+        return [Pipeline::class];
+    }
+
+    public function makePipeline(): Pipeline
+    {
+        return new Pipeline($this->container);
     }
 }

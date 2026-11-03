@@ -4,92 +4,174 @@ declare(strict_types=1);
 
 namespace Tavaan\Engine\Pipeline;
 
-use Tavaan\Core\Contracts\Config\RepositoryInterface as Config;
-
 /**
- * Pipeline — پیاده‌سازی اصلی موتور.
+ * Pipeline — عبور دادن یک Payload از زنجیره‌ای از پردازشگرها (onion order).
  *
- * @see \Tavaan\Engine\Pipeline\Contracts\PipelineInterface
+ * @see docs/03-engines/pipeline.md (DOC-034)
  */
-final class Pipeline implements Contracts\PipelineInterface
+final class Pipeline
 {
+    private mixed $passable = null;
+
     /**
-     * @param Config $config پیکربندی موتور
+     * @var list<string|callable|object>
+     */
+    private array $pipes = [];
+
+    private string $method = 'handle';
+
+    /**
+     * @var list<callable>
+     */
+    private array $afterStages = [];
+
+    /**
+     * @param object|null $container Container (with make() method) for resolving pipes
      */
     public function __construct(
-        private readonly Config $config,
+        private readonly ?object $container = null,
     ) {
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function send(/* ... */): mixed
+    public function send(mixed $passable): static
     {
-        // TODO: پیاده‌سازی send مطابق مستندات (سند §3 API).
-        return null;
+        $this->passable = $passable;
+        return $this;
+    }
+
+    public function through(array|iterable $pipes): static
+    {
+        $this->pipes = \is_array($pipes) ? \array_values($pipes) : \iterator_to_array($pipes, false);
+        return $this;
+    }
+
+    public function pipe(string|callable|object $pipe): static
+    {
+        $this->pipes[] = $pipe;
+        return $this;
+    }
+
+    public function via(string $method = 'handle'): static
+    {
+        $this->method = $method;
+        return $this;
     }
 
     /**
-     * {@inheritdoc}
+     * اجرای زنجیره با destination.
      */
-    public function through(/* ... */): mixed
+    public function then(callable $destination): mixed
     {
-        // TODO: پیاده‌سازی through مطابق مستندات (سند §3 API).
-        return null;
+        $pipeline = \array_reduce(
+            \array_reverse($this->pipes),
+            $this->carry(),
+            static fn(mixed $passable): mixed => $destination($passable),
+        );
+
+        return $pipeline($this->passable);
     }
 
     /**
-     * {@inheritdoc}
+     * اجرای زنجیره با destination = identity (همان passable).
      */
-    public function pipe(/* ... */): mixed
+    public function thenReturn(): mixed
     {
-        // TODO: پیاده‌سازی pipe مطابق مستندات (سند §3 API).
-        return null;
+        return $this->then(static fn(mixed $passable): mixed => $passable);
     }
 
     /**
-     * {@inheritdoc}
+     * افزودن یک stage برای اجرای پس از then().
      */
-    public function via(/* ... */): mixed
+    public function after(callable $stage): static
     {
-        // TODO: پیاده‌سازی via مطابق مستندات (سند §3 API).
-        return null;
+        $this->afterStages[] = $stage;
+        return $this;
     }
 
     /**
-     * {@inheritdoc}
+     * اجرای post-stages (terminate).
      */
-    public function then(/* ... */): mixed
+    public function terminate(mixed $passable, mixed $result): void
     {
-        // TODO: پیاده‌سازی then مطابق مستندات (سند §3 API).
-        return null;
+        foreach ($this->afterStages as $stage) {
+            $stage($passable, $result);
+        }
     }
 
     /**
-     * {@inheritdoc}
+     * Get all configured pipes.
+     *
+     * @return list<string|callable|object>
      */
-    public function thenReturn(/* ... */): mixed
+    public function pipes(): array
     {
-        // TODO: پیاده‌سازی thenReturn مطابق مستندات (سند §3 API).
-        return null;
+        return $this->pipes;
     }
 
     /**
-     * {@inheritdoc}
+     * Closure that wraps each pipe around the next.
      */
-    public function after(/* ... */): mixed
+    private function carry(): \Closure
     {
-        // TODO: پیاده‌سازی after مطابق مستندات (سند §3 API).
-        return null;
+        $container = $this->container;
+        $method = $this->method;
+        return function (\Closure $next, string|callable|object $pipe) use ($container, $method): \Closure {
+            return function (mixed $passable) use ($next, $pipe, $container, $method): mixed {
+                // Closure pipe
+                if ($pipe instanceof \Closure || \is_callable($pipe)) {
+                    return $pipe($passable, $next);
+                }
+                // Object pipe — call method directly
+                if (\is_object($pipe)) {
+                    if (!\method_exists($pipe, $method)) {
+                        return $next($passable);
+                    }
+                    return $pipe->{$method}($passable, $next);
+                }
+                // String pipe — parse "name:param1,param2" syntax
+                [$name, $parameters] = self::parsePipeString($pipe);
+                if (\is_string($name)) {
+                    $instance = null;
+                    if ($container !== null && \method_exists($container, 'make')) {
+                        try {
+                            $instance = $container->make($name);
+                        } catch (\Throwable) {
+                            $instance = null;
+                        }
+                    }
+                    if ($instance === null && \class_exists($name)) {
+                        $instance = new $name();
+                    }
+                    if ($instance === null) {
+                        // Unknown pipe — pass through
+                        return $next($passable);
+                    }
+                    if (!\method_exists($instance, $method)) {
+                        return $next($passable);
+                    }
+                    return $instance->{$method}(
+                        $passable,
+                        static fn(mixed $p): mixed => $next($p),
+                        ...$parameters,
+                    );
+                }
+                return $next($passable);
+            };
+        };
     }
 
     /**
-     * {@inheritdoc}
+     * 'auth:web,admin' → ['auth', ['web', 'admin']]
+     *
+     * @return array{0: string|object, 1: list<string>}
      */
-    public function terminate(/* ... */): mixed
+    private static function parsePipeString(string|object $pipe): array
     {
-        // TODO: پیاده‌سازی terminate مطابق مستندات (سند §3 API).
-        return null;
+        if (!\is_string($pipe)) {
+            return [$pipe, []];
+        }
+        [$name, $params] = \array_pad(\explode(':', $pipe, 2), 2, '');
+        $parameters = $params === '' ? [] : \explode(',', $params);
+        return [$name, \array_map(\trim(...), $parameters)];
     }
 }
