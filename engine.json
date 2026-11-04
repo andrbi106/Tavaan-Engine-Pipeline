@@ -15,7 +15,9 @@
   ],
   "requires": {
     "php": ">=8.2",
-    "engines": ["container"]
+    "engines": [
+      "container"
+    ]
   },
   "config": {
     "file": "config/pipeline.php",
@@ -23,5 +25,6 @@
   },
   "tables": [],
   "commands": [],
-  "docs": "docs/03-engines/pipeline.md"
+  "docs": "docs/03-engines/pipeline.md",
+  "class": "Tavaan\\Engine\\Pipeline\\PipelineEngine"
 }

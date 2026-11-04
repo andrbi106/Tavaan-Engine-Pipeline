@@ -2,6 +2,8 @@
 
 > **خط لوله** — موتور Pipeline در فریمورک تَوان
 
+این موتور از کلاس پایهٔ `Engine` (در [Tavaan-Engine-Core](https://github.com/andrbi106/Tavaan-Engine-Core)) ارث می‌برد.
+
 ## مشخصات
 
 | فیلد | مقدار |
@@ -11,58 +13,60 @@
 | عنوان فارسی | خط لوله |
 | نسخه | `0.1.0` |
 | namespace | `Tavaan\Engine\Pipeline` |
-| نوع | `engine` |
+| کلاس موتور | `Tavaan\Engine\Pipeline\PipelineEngine` |
+| Facade |  |
 
-## قراردادها (Contracts)
+## کلاس موتور
 
-این موتور قراردادهای زیر را ارائه می‌دهد:
+```php
+namespace Tavaan\Engine\Pipeline;
 
-- `Tavaan\Engine\Pipeline\Contracts\MiddlewareInterface`
-- `Tavaan\Engine\Pipeline\Contracts\PipelineInterface`
+use Tavaan\EngineCore\Engine as BaseEngine;
+use Tavaan\EngineCore\Contracts\EngineManifestInterface;
 
-## خطاها (Exceptions)
+final class PipelineEngine extends BaseEngine
+{
+    public function __construct(EngineManifestInterface $manifest)
+    {
+        parent::__construct($manifest);
+    }
 
-- `Tavaan\Engine\Pipeline\Exceptions\PipelineException`
-- `Tavaan\Engine\Pipeline\Exceptions\PipelineMaxDepthException`
-- `Tavaan\Engine\Pipeline\Exceptions\PipelinePipeNotFoundException`
+    public function register(ContainerInterface $container): void
+    {
+        parent::register($container);
+        // bindingهای اختصاصی موتور
+    }
 
-## کلاس‌های اصلی
+    public function boot(): void
+    {
+        parent::boot();
+    }
+}
+```
 
-- `src/Pipeline.php`
-- `src/PipelineServiceProvider.php`
+**فایل:** `src/PipelineEngine.php`
+
+## وابستگی‌ها
+
+**موتورهای مورد‌نیاز:** `container`
 
 ## Service Providerها
 
 - `Tavaan\Engine\Pipeline\PipelineServiceProvider`
 
-## وابستگی‌ها
+## سه درگاه ارتباط با سایر موتورها
 
-**موتورهای مورد‌نیاز:**
-
-- `container`
-
-## پیکربندی
-
-- فایل پیکربندی: `config/pipeline.php`
-- کلید: `pipeline`
+| درگاه | الگو | متدهای convenience |
+|---|---|---|
+| Container | pull-based DI | `make()`, `bound()` |
+| Events | pub/sub | `dispatch()`, `listen()` |
+| EngineBus | point-to-point RPC | `call()`, `offer()` |
 
 ## نصب
 
 ```bash
 git clone https://github.com/andrbi106/Tavaan-Engine-Pipeline.git
 ```
-
-این موتور بخشی از فریمورک تَوان است و معمولاً به‌صورت مستقیم نصب نمی‌شود،
-بلکه توسط [Tavaan-Core](https://github.com/andrbi106/Tavaan-Core) مدیریت می‌شود.
-
-## روابط با سایر مخازن
-
-| مخزن | نقش |
-|---|---|
-| **`andrbi106/Tavaan-Engine-Pipeline`** (این مخزن) | موتور Pipeline |
-| `andrbi106/Tavaan-Engine-Core` | ساختار پایه + درگاه ارتباط موتورها |
-| `andrbi106/Tavaan-Core` | اسکلت اپلیکیشن + همهٔ موتورها |
-| `Derogaramin/Tavaan-Framework` | فریمورک مادر (monorepo) |
 
 ## مجوز
 
